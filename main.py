@@ -2,180 +2,181 @@ import tkinter as tk
 from tkinter import ttk
 import speedtest
 import threading
-import time
+import math
 
 
 class SpeedTestApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Internet Speed Test")
-        self.root.geometry("400x400")
-        self.root.configure(bg="282c34")
-                            
-        
-        #frame for the content
-        frame = tk.Frame(self.root, bg="282c34")
-        frame.pack(expand=True)
+        self.root.geometry("500x600")
+        self.root.configure(bg="#282c34")
 
-        #label for the title
-        self.title_label = tk.Label(
-            frame, text="Internet Speed Test", 
-            font=("Helvetica", 18, "bold"),
-            fg="#61afef", bg="#282c34"
+        self.setup_ui()
+        self.setup_animations()
+
+    def setup_ui(self):
+        # Main frame
+        main_frame = tk.Frame(self.root, bg="#282c34")
+        main_frame.pack(expand=True, fill="both", padx=20, pady=20)
+
+        # Title
+        title_label = tk.Label(
+            main_frame,
+            text="Internet Speed Test",
+            font=("Helvetica", 24, "bold"),
+            fg="#61afef",
+            bg="#282c34",
         )
-        self.title_label.pack(pady=20)
+        title_label.pack(pady=20)
+
+        # Speed gauge
+        self.gauge_canvas = tk.Canvas(
+            main_frame, width=300, height=300, bg="#282c34", highlightthickness=0
+        )
+        self.gauge_canvas.pack(pady=20)
+
+        # Speed labels
+        self.speed_frame = tk.Frame(main_frame, bg="#282c34")
+        self.speed_frame.pack(pady=10)
+
+        self.download_label = self.create_speed_label(
+            self.speed_frame, "Download")
+        self.upload_label = self.create_speed_label(self.speed_frame, "Upload")
+        self.ping_label = self.create_speed_label(self.speed_frame, "Ping")
+
+        # Test button
         self.test_button = tk.Button(
-            frame, text="Start Test", font=("Helvetica", 14), command=self.run_speed_test, bg="#61afef", fg="#ffffff", activebackground="#61afef", activeforeground="#ffffff"
+            main_frame,
+            text="Start Test",
+            font=("Helvetica", 16),
+            command=self.run_speed_test,
+            bg="#61afef",
+            fg="#ffffff",
+            activebackground="#61afef",
+            activeforeground="#ffffff",
+            relief=tk.FLAT,
+            padx=20,
+            pady=10,
         )
-        self.test_button.pack(pady=10)
+        self.test_button.pack(pady=20)
 
-        # Create a label to display results
-        self.result_label = tk.Label(frame, text="", font=(
-            "Helvetica", 14), fg="#dcdfe4", bg="#282c34")
-        self.result_label.pack(pady=20)
+    def create_speed_label(self, parent, text):
+        frame = tk.Frame(parent, bg="#282c34")
+        frame.pack(side=tk.LEFT, padx=10)
 
-        # Create a canvas for animation
-        self.canvas = tk.Canvas(
-            frame, width=100, height=100, bg="#282c34", highlightthickness=0)
-        self.arc = self.canvas.create_arc(
-            10, 10, 90, 90, start=0, extent=150, outline="#61afef", width=5)
-        self.canvas.pack(pady=10)
+        label = tk.Label(
+            frame,
+            text=text,
+            font=("Helvetica", 14),
+            fg="#dcdfe4",
+            bg="#282c34",
+        )
+        label.pack()
 
-        # Animation variables
-        self.angle = 0
-        self.animating = False
+        value = tk.Label(
+            frame,
+            text="--",
+            font=("Helvetica", 16, "bold"),
+            fg="#98c379",
+            bg="#282c34",
+        )
+        value.pack()
 
-    def animate_arc(self):
-        """Animate the arc to create a spinning effect."""
-        if self.animating:
-            self.angle = (self.angle + 10) % 360
-            self.canvas.itemconfig(self.arc, start=self.angle)
-            self.root.after(50, self.animate_arc)
+        return value
 
-    def toggle_animation(self, start=True):
-        """Start or stop the spinning animation."""
-        self.animating = start
-        if start:
-            self.animate_arc()
-        else:
-            self.canvas.itemconfig(self.arc, start=0)
+    def setup_animations(self):
+        self.gauge_value = 0
+        self.gauge_target = 0
+        self.gauge_speed = 0
+        self.draw_gauge()
+
+    def draw_gauge(self):
+        self.gauge_canvas.delete("all")
+        center_x, center_y = 150, 150
+        radius = 120
+
+        # Draw background arc
+        self.gauge_canvas.create_arc(
+            center_x - radius,
+            center_y - radius,
+            center_x + radius,
+            center_y + radius,
+            start=135,
+            extent=270,
+            style="arc",
+            width=20,
+            outline="#3e4451"
+        )
+
+        # Draw foreground arc
+        self.gauge_canvas.create_arc(
+            center_x - radius,
+            center_y - radius,
+            center_x + radius,
+            center_y + radius,
+            start=135,
+            extent=self.gauge_value * 2.7,
+            style="arc",
+            width=20,
+            outline="#61afef"
+        )
+
+        # Draw speed text
+        self.gauge_canvas.create_text(
+            center_x,
+            center_y,
+            text=f"{self.gauge_value:.1f}",
+            font=("Helvetica", 48, "bold"),
+            fill="#61afef"
+        )
+        self.gauge_canvas.create_text(
+            center_x,
+            center_y + 50,
+            text="Mbps",
+            font=("Helvetica", 18),
+            fill="#dcdfe4"
+        )
+
+        # Animate gauge
+        if abs(self.gauge_value - self.gauge_target) > 0.1:
+            self.gauge_value += (self.gauge_target - self.gauge_value) * 0.1
+            self.root.after(16, self.draw_gauge)
 
     def run_speed_test(self):
-        """Run the internet speed test and update the GUI with results."""
         self.test_button.config(state=tk.DISABLED)
-        self.result_label.config(text="Testing...")
-        self.toggle_animation(True)
+        self.download_label.config(text="--")
+        self.upload_label.config(text="--")
+        self.ping_label.config(text="--")
 
         def test():
             st = speedtest.Speedtest()
             st.get_best_server()
-            download_speed = st.download() / 1_000_000  # Convert to Mbps
-            upload_speed = st.upload() / 1_000_000      # Convert to Mbps
-            ping = st.results.ping
 
-            # Update the GUI with the results
-            result_text = (
-                f"Download Speed: {download_speed:.2f} Mbps\n"
-                f"Upload Speed: {upload_speed:.2f} Mbps\n"
-                f"Ping: {ping:.2f} ms"
-            )
-            self.result_label.config(text=result_text)
-            self.toggle_animation(False)
+            # Test download speed
+            self.gauge_target = 0
+            download_speed = st.download() / 1_000_000  # Convert to Mbps
+            self.gauge_target = download_speed
+            self.root.after(0, self.draw_gauge)
+            self.download_label.config(text=f"{download_speed:.2f} Mbps")
+
+            # Test upload speed
+            self.gauge_target = 0
+            upload_speed = st.upload() / 1_000_000  # Convert to Mbps
+            self.gauge_target = upload_speed
+            self.root.after(0, self.draw_gauge)
+            self.upload_label.config(text=f"{upload_speed:.2f} Mbps")
+
+            # Get ping
+            ping = st.results.ping
+            self.ping_label.config(text=f"{ping:.2f} ms")
+
             self.test_button.config(state=tk.NORMAL)
 
-        # Run in a separate thread to prevent UI blocking
         threading.Thread(target=test).start()
 
 
-root = tk.Tk()
-app = SpeedTestApp(root)
-
-root.mainloop()
-
-class SpeedTest:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Internet Speed Test")
-        self.root.geometry("400x400")
-        self.root.configure(bg="282c34")
-                            
-        
-        #frame for the content
-        frame = tk.Frame(self.root, bg="282c34")
-        frame.pack(expand=True)
-
-        #label for the title
-        self.title_label = tk.Label(
-            frame, text="Internet Speed Test", 
-            font=("Helvetica", 18, "bold"),
-            fg="#61afef", bg="#282c34"
-        )
-        self.title_label.pack(pady=20)
-        # Create a button to start the speed test
-        self.test_button = tk.Button(
-            frame, text="Start Test", font=("Helvetica", 14), command=self.run_speed_test, bg="#61afef", fg="#ffffff", activebackground="#61afef", activeforeground="#ffffff"
-        )
-        self.test_button.pack(pady=10)
-
-        # Create a label to display results
-        self.result_label = tk.Label(frame, text="", font=(
-            "Helvetica", 14), fg="#dcdfe4", bg="#282c34")
-        self.result_label.pack(pady=20)
-
-        # Create a canvas for animation
-        self.canvas = tk.Canvas(
-            frame, width=100, height=100, bg="#282c34", highlightthickness=0)
-        self.arc = self.canvas.create_arc(
-            10, 10, 90, 90, start=0, extent=150, outline="#61afef", width=5)
-        self.canvas.pack(pady=10)
-
-        # Animation variables
-        self.angle = 0
-        self.animating = False
-
-    def animate_arc(self):
-        """Animate the arc to create a spinning effect."""
-        if self.animating:
-            self.angle = (self.angle + 10) % 360
-            self.canvas.itemconfig(self.arc, start=self.angle)
-            self.root.after(50, self.animate_arc)
-
-    def toggle_animation(self, start=True):
-        """Start or stop the spinning animation."""
-        self.animating = start
-        if start:
-            self.animate_arc()
-        else:
-            self.canvas.itemconfig(self.arc, start=0)
-
-    def run_speed_test(self):
-        """Run the internet speed test and update the GUI with results."""
-        self.test_button.config(state=tk.DISABLED)
-        self.result_label.config(text="Testing...")
-        self.toggle_animation(True)
-
-        def test():
-            st = speedtest.Speedtest()
-            st.get_best_server()
-            download_speed = st.download() / 1_000_000  # Convert to Mbps
-            upload_speed = st.upload() / 1_000_000      # Convert to Mbps
-            ping = st.results.ping
-
-            # Update the GUI with the results
-            result_text = (
-                f"Download Speed: {download_speed:.2f} Mbps\n"
-                f"Upload Speed: {upload_speed:.2f} Mbps\n"
-                f"Ping: {ping:.2f} ms"
-            )
-            self.result_label.config(text=result_text)
-            self.toggle_animation(False)
-            self.test_button.config(state=tk.NORMAL)
-
-        # Run in a separate thread to prevent UI blocking
-        threading.Thread(target=test).start()
-
-
-root = tk.Tk()
-app = SpeedTestApp(root)
-
-root.mainloop()
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = SpeedTestApp(root)
+    root.mainloop()
