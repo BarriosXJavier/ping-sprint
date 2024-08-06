@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 import tkinter as tk
-import internet_speedtest
+import speedtest
 import threading
 
 
@@ -20,6 +20,7 @@ class SpeedTestApp:
         draw_gauge(self): Draws the gauge on the canvas.
         run_speed_test(self): Runs the speed test.
     """
+
     def __init__(self, root):
         self.root = root
         self.root.title("Internet Speed Test")
@@ -176,7 +177,7 @@ class SpeedTestApp:
 
         def test():
             try:
-                st = internet_speedtest.Speedtest()
+                st = speedtest.Speedtest()
                 st.get_best_server()
 
                 # Test download speed
