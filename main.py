@@ -8,7 +8,7 @@ import math
 class SpeedTestApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("PingSprint Internet Speedtest")
+        self.root.title("Internet Speed Test")
         self.root.geometry("500x600")
         self.root.configure(bg="#282c34")
 
@@ -23,7 +23,7 @@ class SpeedTestApp:
         # Title
         title_label = tk.Label(
             main_frame,
-            text="PingSprint Internet Speedtest",
+            text="Internet Speed Test",
             font=("Helvetica", 24, "bold"),
             fg="#61afef",
             bg="#282c34",
