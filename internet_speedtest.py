@@ -1,11 +1,25 @@
+#!/usr/bin/python3
+
 import tkinter as tk
-from tkinter import ttk
-import speedtest
+import internet_speedtest
 import threading
-import math
 
 
 class SpeedTestApp:
+    """
+    A class representing an Internet Speed Test application.
+
+    Attributes:
+        root (tk.Tk): The root window of the application.
+
+    Methods:
+        __init__(self, root): Initializes the SpeedTestApp object.
+        setup_ui(self): Sets up the user interface of the application.
+        create_speed_label(self, parent, text): Creates a speed label widget.
+        setup_animations(self): Sets up the animations for the gauge.
+        draw_gauge(self): Draws the gauge on the canvas.
+        run_speed_test(self): Runs the speed test.
+    """
     def __init__(self, root):
         self.root = root
         self.root.title("Internet Speed Test")
@@ -162,7 +176,7 @@ class SpeedTestApp:
 
         def test():
             try:
-                st = speedtest.Speedtest()
+                st = internet_speedtest.Speedtest()
                 st.get_best_server()
 
                 # Test download speed
@@ -193,7 +207,7 @@ class SpeedTestApp:
                 self.root.after(
                     0, lambda: self.status_label.config(text="Test Complete"))
             except Exception as e:
-                self.root.after(0, lambda: self.status_label.config(
+                self.root.after(0, lambda e=e: self.status_label.config(
                     text=f"Error: {e}"))
             finally:
                 self.root.after(
