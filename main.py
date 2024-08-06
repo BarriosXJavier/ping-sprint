@@ -9,7 +9,7 @@ class SpeedTestApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Internet Speed Test")
-        self.root.geometry("500x600")
+        self.root.geometry("500x700")
         self.root.configure(bg="#282c34")
 
         self.setup_ui()
@@ -35,6 +35,16 @@ class SpeedTestApp:
             main_frame, width=300, height=300, bg="#282c34", highlightthickness=0
         )
         self.gauge_canvas.pack(pady=20)
+
+        # Status label
+        self.status_label = tk.Label(
+            main_frame,
+            text="",
+            font=("Helvetica", 16),
+            fg="#98c379",
+            bg="#282c34",
+        )
+        self.status_label.pack(pady=10)
 
         # Speed labels
         self.speed_frame = tk.Frame(main_frame, bg="#282c34")
@@ -148,30 +158,46 @@ class SpeedTestApp:
         self.download_label.config(text="--")
         self.upload_label.config(text="--")
         self.ping_label.config(text="--")
+        self.status_label.config(text="Test Started")
 
         def test():
-            st = speedtest.Speedtest()
-            st.get_best_server()
+            try:
+                st = speedtest.Speedtest()
+                st.get_best_server()
 
-            # Test download speed
-            self.gauge_target = 0
-            download_speed = st.download() / 1_000_000  # Convert to Mbps
-            self.gauge_target = download_speed
-            self.root.after(0, self.draw_gauge)
-            self.download_label.config(text=f"{download_speed:.2f} Mbps")
+                # Test download speed
+                self.root.after(0, lambda: self.status_label.config(
+                    text="Test Running: Download"))
+                self.gauge_target = 0
+                download_speed = st.download() / 1_000_000  # Convert to Mbps
+                self.gauge_target = download_speed
+                self.root.after(0, self.draw_gauge)
+                self.root.after(0, lambda: self.download_label.config(
+                    text=f"{download_speed:.2f} Mbps"))
 
-            # Test upload speed
-            self.gauge_target = 0
-            upload_speed = st.upload() / 1_000_000  # Convert to Mbps
-            self.gauge_target = upload_speed
-            self.root.after(0, self.draw_gauge)
-            self.upload_label.config(text=f"{upload_speed:.2f} Mbps")
+                # Test upload speed
+                self.root.after(0, lambda: self.status_label.config(
+                    text="Test Running: Upload"))
+                self.gauge_target = 0
+                upload_speed = st.upload() / 1_000_000  # Convert to Mbps
+                self.gauge_target = upload_speed
+                self.root.after(0, self.draw_gauge)
+                self.root.after(0, lambda: self.upload_label.config(
+                    text=f"{upload_speed:.2f} Mbps"))
 
-            # Get ping
-            ping = st.results.ping
-            self.ping_label.config(text=f"{ping:.2f} ms")
+                # Get ping
+                ping = st.results.ping
+                self.root.after(0, lambda: self.ping_label.config(
+                    text=f"{ping:.2f} ms"))
 
-            self.test_button.config(state=tk.NORMAL)
+                self.root.after(
+                    0, lambda: self.status_label.config(text="Test Complete"))
+            except Exception as e:
+                self.root.after(0, lambda: self.status_label.config(
+                    text=f"Error: {e}"))
+            finally:
+                self.root.after(
+                    0, lambda: self.test_button.config(state=tk.NORMAL))
 
         threading.Thread(target=test).start()
 
